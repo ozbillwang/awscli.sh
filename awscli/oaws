@@ -23,7 +23,7 @@ if [ $1 == "" ] ; then
 else
   command=$1;shift
 fi
-i
+
 # list instance ID and it's private ip address only
 # sampel output:  i-abce1234 10.12.23.45
 list-host() {
