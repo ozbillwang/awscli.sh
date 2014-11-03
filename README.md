@@ -17,3 +17,7 @@ Scripts in folder "jsawk" need jsawk script installed - curl -L http://github.co
 ```
 
 Scripts are tested under bash.
+
+First working script:
+
+awscli.sh / awscli / oaws  # will add more commands in it.
