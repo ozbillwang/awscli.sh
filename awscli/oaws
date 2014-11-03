@@ -7,13 +7,14 @@
 # default variable regions and output format can be re-defined for your own environment.
 
 usage () {
-  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk|all] -t"
+  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk|all] -[t|j]"
   echo "list-host  # list instance ID and private ip address."
   echo "list-asg   # list instance ID, name, ip address and auto scaling group."
   echo "list-all   # list most ec2 informations " 
   echo "-k KEYWORD # used to grep the key word"
   echo "-r region, default value is ap-southeast-2 "
-  echo "-t format,  default value is text"
+  echo "-t, default output is text, with -t, output with formatted table"
+  echo "-j, default output is text, with -j, output with json formatted"
   exit
 }
 
@@ -54,7 +55,7 @@ regions="ap-southeast-2"
 format="text"
 
 # main
-while getopts "k:r:t" arg
+while getopts "k:r:tj" arg
 do
         case $arg in
              k)
@@ -73,6 +74,9 @@ do
                 ;;
              t)
                 format="table"
+                ;;
+             j) 
+                format="json"
                 ;;
              ?)
                 usage
