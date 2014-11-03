@@ -7,13 +7,13 @@
 # default variable regions and output format can be re-defined for your own environment.
 
 usage () {
-  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk] -t [table|text]"
+  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk|all] -t [table|text]"
   echo "list-host  # list instance ID and private ip address."
   echo "list-asg   # list instance ID, name, ip address and auto scaling group."
   echo "list-all   # list most ec2 informations " 
   echo "-k KEYWORD # used to grep the key word"
-  echo "-r region [qa|live|talk], default value is qa"
-  echo "-t format [table|text], default value is text"
+  echo "-r region, default value is ap-southeast-2 "
+  echo "-t format,  default value is text"
   exit
 }
 
@@ -65,6 +65,7 @@ do
                     qa) regions=ap-southeast-2;;
                     live) regions=us-west-2;;
                     talk) regions="us-east-1 eu-west-1 ap-southeast-2 us-west-2";;
+                    all) regions="us-east-1 us-west-2 us-west-1 eu-west-1 eu-central-1 ap-southeast-1 ap-southeast-2 ap-northeast-1 sa-east-1"
                     *) echo "no the regions $OPTARG"
                        usage
                        exit;;
