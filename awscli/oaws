@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 
+# two changes before run in your own environment.
+# varialbe regions can be re-defined for your own enviroment, for example:
+# dev, staging or prod for different regions. 
+
+# default variable regions and output format can be re-defined for your own environment.
+
 usage () {
-  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk] -t [tabel|text]"
+  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk] -t [table|text]"
   echo "list-host  # list instance ID and private ip address."
   echo "list-asg   # list instance ID, name, ip address and auto scaling group."
   echo "list-all   # list most ec2 informations " 
   echo "-k KEYWORD # used to grep the key word"
   echo "-r region [qa|live|talk], default value is qa"
-  echo "-t format [tabel|text], default value is text"
+  echo "-t format [table|text], default value is text"
   exit
 }
 
@@ -17,16 +23,20 @@ if [ $1 == "" ] ; then
 else
   command=$1;shift
 fi
-
+i
+# list instance ID and it's private ip address only
+# sampel output:  i-abce1234 10.12.23.45
 list-host() {
   aws ec2 describe-instances --query 'Reservations[].Instances[].[InstanceId,PrivateIpAddress]' --region $region --output $format
 }
 
+# list instance ID, ip addresses, name, auto-scaling groups. 
 list-asg() {
   # get the instance id, ipaddress, and name if defined.
   aws ec2 describe-instances --query 'Reservations[].Instances[].[InstanceId,PrivateIpAddress,join(`,`,Tags[?Key==`Name`].Value),PublicIpAddress,join(`,`,Tags[?Key==`aws:autoscaling:groupName`].Value)]' --region $region --output $format
 }
 
+#list instance ID, Ip address, Name, available zone, security groups, vpc id, you can add whatever you like. 
 list-all() {
 # get tabel output
   aws ec2 describe-instances --query 'Reservations[*].Instances[*].{ \
@@ -38,7 +48,8 @@ list-all() {
   STATE:State.Name}' --region $region --output $format
 }
 
-# main
+# main 
+# set default regions and format.
 regions="ap-southeast-2"
 format="text"
 
