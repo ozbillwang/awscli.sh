@@ -2,7 +2,7 @@
 
 # two changes before run in your own environment.
 # varialbe regions can be re-defined for your own enviroment, for example:
-# dev, staging or prod for different regions. 
+# ini, tst, dev, stag or prod for different regions. 
 
 # default variable regions and output format can be re-defined for your own environment.
 
