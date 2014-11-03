@@ -7,7 +7,7 @@
 # default variable regions and output format can be re-defined for your own environment.
 
 usage () {
-  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk|all] -t [table|text]"
+  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk|all] -t"
   echo "list-host  # list instance ID and private ip address."
   echo "list-asg   # list instance ID, name, ip address and auto scaling group."
   echo "list-all   # list most ec2 informations " 
@@ -17,7 +17,7 @@ usage () {
   exit
 }
 
-if [ $1 == "" ] ; then
+if [ "$1" == "" ]; then
   usage
   exit
 else
@@ -54,11 +54,11 @@ regions="ap-southeast-2"
 format="text"
 
 # main
-while getopts "k:r:t:" arg
+while getopts "k:r:t" arg
 do
         case $arg in
              k)
-                key=$OPTARG
+                key="$OPTARG"
                 ;;
              r)
                 case $OPTARG in
@@ -72,7 +72,7 @@ do
                 esac
                 ;;
              t)
-                format="$OPTARG"
+                format="table"
                 ;;
              ?)
                 usage
