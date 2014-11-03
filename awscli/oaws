@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+usage () {
+  echo "Usage: $0 COMMAND -k [KEY] -r [qa|live|talk] -t [tabel|text]"
+  echo "list-host  # list instance ID and private ip address."
+  echo "list-asg   # list instance ID, name, ip address and auto scaling group."
+  echo "list-all   # list most ec2 informations " 
+  echo "-k KEYWORD # used to grep the key word"
+  echo "-r region [qa|live|talk], default value is qa"
+  echo "-t format [tabel|text], default value is text"
+  exit
+}
+
+if [ $1 == "" ] ; then
+  usage
+  exit
+else
+  command=$1;shift
+fi
+
+list-host() {
+  aws ec2 describe-instances --query 'Reservations[].Instances[].[InstanceId,PrivateIpAddress]' --region $region --output $format
+}
+
+list-asg() {
+  # get the instance id, ipaddress, and name if defined.
+  aws ec2 describe-instances --query 'Reservations[].Instances[].[InstanceId,PrivateIpAddress,join(`,`,Tags[?Key==`Name`].Value),PublicIpAddress,join(`,`,Tags[?Key==`aws:autoscaling:groupName`].Value)]' --region $region --output $format
+}
+
+list-all() {
+# get tabel output
+  aws ec2 describe-instances --query 'Reservations[*].Instances[*].{ \
+  ID:InstanceId, PrivateIpAddress:PrivateIpAddress, \
+  Name:join(`,`,Tags[?Key==`Name`].Value), \
+  PublicIpAddress:PublicIpAddress, TYPE:InstanceType, \
+  ZONE:Placement.AvailabilityZone, \
+  SECURITY:join(`,`,SecurityGroups[*].GroupId), VPC:VpcId, \
+  STATE:State.Name}' --region $region --output $format
+}
+
+# main
+regions="ap-southeast-2"
+format="text"
+
+# main
+while getopts "k:r:t:" arg
+do
+        case $arg in
+             k)
+                key=$OPTARG
+                ;;
+             r)
+                case $OPTARG in
+                    qa) regions=ap-southeast-2;;
+                    live) regions=us-west-2;;
+                    talk) regions="us-east-1 eu-west-1 ap-southeast-2 us-west-2";;
+                    *) echo "no the regions $OPTARG"
+                       usage
+                       exit;;
+                esac
+                ;;
+             t)
+                format="$OPTARG"
+                ;;
+             ?)
+                usage
+                exit 1
+                ;;
+        esac
+done
+
+for region in $regions
+do
+  if [ "x$key" == "x" ];then
+    $command
+  else
+    $command |grep -i "$key"
+  fi
+done
