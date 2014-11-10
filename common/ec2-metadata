@@ -1,8 +1,8 @@
 #!/bin/bash
 #########################################################################
-# This script is copied from http://aws.amazon.com/code/1825 (EC2       #
-# Instance Metadata Query Tool). But I am not fully satified it. So add #
-# some new features, esperically to get the region name easily          #
+# Original script is copied from http://aws.amazon.com/code/1825 (EC2   #
+# Instance Metadata Query Tool). But I am not very satisfied. So add    #
+# new features by myself.                                               #
 #########################################################################
 
 # Updates:
