@@ -86,6 +86,18 @@ function print_normal_metric() {
 	fi
 }
 
+# print all metric
+function print_all_metric() {
+	metric_path=$2
+#	echo -n $1": "
+	RESPONSE=$(curl -fs $url/latest/${metric_path}/)
+	if [ $? == 0 ]; then
+		echo $RESPONSE
+	else
+		echo "Value is not available"
+	fi
+}
+
 #print block-device-mapping
 function print_block-device-mapping()
 {
@@ -124,25 +136,25 @@ function print_public-keys()
 
 function print_all()
 {
-	print_normal_metric ami-id meta-data/ami-id
-	print_normal_metric ami-launch-index meta-data/ami-launch-index
-	print_normal_metric ami-manifest-path meta-data/ami-manifest-path
-	print_normal_metric ancestor-ami-ids meta-data/ancestor-ami-ids
+	print_all_metric ami-id meta-data/ami-id
+	print_all_metric ami-launch-index meta-data/ami-launch-index
+	print_all_metric ami-manifest-path meta-data/ami-manifest-path
+	print_all_metric ancestor-ami-ids meta-data/ancestor-ami-ids
 	print_block-device-mapping
-	print_normal_metric instance-id meta-data/instance-id
-	print_normal_metric instance-type meta-data/instance-type
-	print_normal_metric local-hostname meta-data/local-hostname
-	print_normal_metric local-ipv4 meta-data/local-ipv4
-	print_normal_metric kernel-id meta-data/kernel-id
-	print_normal_metric placement meta-data/placement/availability-zone
-	print_normal_metric product-codes meta-data/product-codes
-	print_normal_metric public-hostname meta-data/public-hostname
-	print_normal_metric public-ipv4 meta-data/public-ipv4
-	print_public-keys
-	print_normal_metric ramdisk-id /meta-data/ramdisk-id
-	print_normal_metric reservation-id /meta-data/reservation-id
-	print_normal_metric security-groups meta-data/security-groups
-	print_normal_metric user-data user-data
+	print_all_metric instance-id meta-data/instance-id
+	print_all_metric instance-type meta-data/instance-type
+	print_all_metric local-hostname meta-data/local-hostname
+	print_all_metric local-ipv4 meta-data/local-ipv4
+	print_all_metric kernel-id meta-data/kernel-id
+	print_all_metric placement meta-data/placement/availability-zone
+	print_all_metric product-codes meta-data/product-codes
+	print_all_metric public-hostname meta-data/public-hostname
+	print_all_metric public-ipv4 meta-data/public-ipv4
+	print_all_metric
+	print_all_metric ramdisk-id /meta-data/ramdisk-id
+	print_all_metric reservation-id /meta-data/reservation-id
+	print_all_metric security-groups meta-data/security-groups
+	print_all_metric user-data user-data
 }
 
 #check if run inside an EC2 instance
