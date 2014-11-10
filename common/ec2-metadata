@@ -59,7 +59,7 @@ Options:
 -e/--reservation-id       ID of the reservation.
 -s/--security-groups      Names of the security groups the instance is launched in. Only available if supplied at instance launch time
 -d/--user-data            User-supplied data.Only available if supplied at instance launch time.
--r/--region               Region if the instance."
+-g/--region               Region if the instance."
 }
 
 url="http://169.254.169.254"
@@ -147,11 +147,12 @@ function print_all()
 	print_all_metric local-hostname meta-data/local-hostname
 	print_all_metric local-ipv4 meta-data/local-ipv4
 	print_all_metric kernel-id meta-data/kernel-id
+	echo "Region: `print_normal_metric local-hostname meta-data/local-hostname |cut -d \. -f2`"
 	print_all_metric placement meta-data/placement/availability-zone
 	print_all_metric product-codes meta-data/product-codes
 	print_all_metric public-hostname meta-data/public-hostname
 	print_all_metric public-ipv4 meta-data/public-ipv4
-	print_all_metric
+	print_public-keys
 	print_all_metric ramdisk-id /meta-data/ramdisk-id
 	print_all_metric reservation-id /meta-data/reservation-id
 	print_all_metric security-groups meta-data/security-groups
@@ -189,6 +190,8 @@ while [ "$1" != "" ]; do
 																 ;;
 	-k | --kernel-id )             print_normal_metric kernel-id meta-data/kernel-id
 																 ;;
+        -g | --region )                print_normal_metric local-hostname meta-data/local-hostname |cut -d \. -f2
+                                                                                                                                 ;;
 	-z | --availability-zone )     print_normal_metric placement meta-data/placement/availability-zone
 																 ;;
 	-c | --product-codes )         print_normal_metric product-codes meta-data/product-codes
