@@ -8,7 +8,8 @@
 # Updates:
 # 10/11/2014:  replace url "http://169.254.169.254" as variable.
 #              include a new feature to show region name
-#              export value only (no tag/key).
+#              export value only (no tag/key)
+#              export user-data with original format
 
 # Usages:
 # wget https://raw.githubusercontent.com/ozbillwang/awscli.sh/master/common/ec2-metadata
@@ -80,7 +81,7 @@ function print_normal_metric() {
 #	echo -n $1": "
 	RESPONSE=$(curl -fs $url/latest/${metric_path}/)
 	if [ $? == 0 ]; then
-		echo $RESPONSE
+		echo "$RESPONSE"
 	else
 		echo "Value is not available"
 	fi
@@ -92,7 +93,7 @@ function print_all_metric() {
 	echo -n $1": "
 	RESPONSE=$(curl -fs $url/latest/${metric_path}/)
 	if [ $? == 0 ]; then
-		echo $RESPONSE
+		echo "$RESPONSE"
 	else
 		echo "Value is not available"
 	fi
