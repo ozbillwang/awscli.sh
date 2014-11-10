@@ -8,9 +8,10 @@
 # Updates:
 # 10/11/2014:  replace url "http://169.254.169.254" as variable.
 #              include a new feature to show region name
+#              export value only (no tag/key).
 
 # Usages:
-# wget 
+# wget https://raw.githubusercontent.com/ozbillwang/awscli.sh/master/common/ec2-metadata
 # chmod +x && cp ec2-metadata /usr/bin;
 # ec2-metadata 
 
@@ -76,12 +77,12 @@ function chk_config()
 #print standard metric
 function print_normal_metric() {
 	metric_path=$2
-	echo -n $1": "
+#	echo -n $1": "
 	RESPONSE=$(curl -fs $url/latest/${metric_path}/)
 	if [ $? == 0 ]; then
 		echo $RESPONSE
 	else
-		echo not available
+		echo "Value is not available"
 	fi
 }
 
