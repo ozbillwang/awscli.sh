@@ -12,7 +12,7 @@
 
 # Usages:
 # wget https://raw.githubusercontent.com/ozbillwang/awscli.sh/master/common/ec2-metadata
-# chmod +x && cp ec2-metadata /usr/bin;
+# chmod +x ec2-metadata && cp ec2-metadata /usr/bin;
 # ec2-metadata 
 
 #########################################################################
