@@ -14,7 +14,7 @@ Scripts in folder "awscli" need aws cli package only (pip install awscli)
 Scripts in folder "jq" need jq installed - http://stedolan.github.io/jq/
 Scripts in folder "JSON.sh" need JSON.sh installed - git clone https://github.com/dominictarr/JSON.sh.git
 Scripts in folder "jsawk" need jsawk script installed - curl -L http://github.com/micha/jsawk/raw/master/jsawk > jsawk && chmod 755 jsawk
-Scripts in folder "common" - normally BASH only. 
+Scripts in folder "common" - BASH only. 
 ```
 
 Scripts are tested under bash.
