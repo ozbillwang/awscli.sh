@@ -89,7 +89,7 @@ function print_normal_metric() {
 # print all metric
 function print_all_metric() {
 	metric_path=$2
-#	echo -n $1": "
+	echo -n $1": "
 	RESPONSE=$(curl -fs $url/latest/${metric_path}/)
 	if [ $? == 0 ]; then
 		echo $RESPONSE
