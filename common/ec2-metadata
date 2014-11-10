@@ -12,7 +12,7 @@
 #              export user-data with original format
 
 # Usages:
-# wget https://raw.githubusercontent.com/ozbillwang/awscli.sh/master/common/ec2-metadata
+# wget -q https://raw.githubusercontent.com/ozbillwang/awscli.sh/master/common/ec2-metadata -O ec2-metadata
 # chmod +x ec2-metadata && cp ec2-metadata /usr/bin;
 # ec2-metadata 
 
@@ -147,7 +147,7 @@ function print_all()
 	print_all_metric local-hostname meta-data/local-hostname
 	print_all_metric local-ipv4 meta-data/local-ipv4
 	print_all_metric kernel-id meta-data/kernel-id
-	echo "Region: `print_normal_metric local-hostname meta-data/local-hostname |cut -d \. -f2`"
+	echo "region: `print_normal_metric local-hostname meta-data/local-hostname |cut -d \. -f2`"
 	print_all_metric placement meta-data/placement/availability-zone
 	print_all_metric product-codes meta-data/product-codes
 	print_all_metric public-hostname meta-data/public-hostname
