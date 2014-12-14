@@ -33,5 +33,6 @@ instance = ec2.instances.create(
 
 sleep 10 while instance.status == :pending
 ###############################
+# http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2/InstanceCollection.html
 # list instances, #{i.id} is the instance id.
 ec2.instances.inject({}) { |m, i| m[i.id] = i.status; m; puts "#{m} #{i.id}" }
