@@ -22,7 +22,7 @@ ec2-run-instances ami-b5a7ea85 --region us-west-2 -k aws.key --instance-type t2.
 require 'rubygems'
 require 'aws-sdk'
 
-ec2 = AWS::EC2.new
+ec2 = AWS::EC2.new(:region => "us-west-2")
 
 instance = ec2.instances.create(
 :image_id => 'ami-b5a7ea85',
@@ -33,3 +33,5 @@ instance = ec2.instances.create(
 
 sleep 10 while instance.status == :pending
 ###############################
+# list instances
+ec2.instances.inject({}) { |m, i| m[i.id] = i.status; m; puts "#{m}" }
