@@ -14,3 +14,20 @@ ec2-describe-images ami-b5a7ea85 --region us-west-2
 
 # run a new instances with ephemeral disk (not sure why it doesn't work with t2.micro instance, can't see the ephemeral disk)
 ec2-run-instances ami-b5a7ea85 --region us-west-2 -k aws.key --instance-type t2.micro --block-device-mapping /dev/sdc=ephemeral0
+
+#############################
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'aws-sdk'
+
+ec2 = AWS::EC2.new
+
+instance = ec2.instances.create(
+:image_id => 'ami-b5a7ea85',
+:instance_type => 't2.micro',
+:count => 1,
+:security_groups => 'Vagrant',
+:key_pair => ec2.key_pairs['aws.key'])
+
+sleep 10 while instance.status == :pending
+###############################
