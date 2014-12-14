@@ -1,5 +1,6 @@
 # list the running or terminal instances (stopped instances are not in list)
 # http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2.html
+# https://github.com/aws/aws-sdk-ruby/tree/master/samples/ec2
 
 ec2-describe-instances --region us-west-2 |awk '/INSTANCE/{print $2}'
 
