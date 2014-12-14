@@ -33,5 +33,5 @@ instance = ec2.instances.create(
 
 sleep 10 while instance.status == :pending
 ###############################
-# list instances
-ec2.instances.inject({}) { |m, i| m[i.id] = i.status; m; puts "#{m}" }
+# list instances, #{i.id} is the instance id.
+ec2.instances.inject({}) { |m, i| m[i.id] = i.status; m; puts "#{m} #{i.id}" }
