@@ -12,5 +12,5 @@ ec2stop i-0744b709 --region us-west-2
 describe default Amazon Linux image 
 ec2-describe-images ami-b5a7ea85 --region us-west-2
 
-# run a new instances with ephemeral disk
+# run a new instances with ephemeral disk (not sure why it doesn't work with t2.micro instance, can't see the ephemeral disk)
 ec2-run-instances ami-b5a7ea85 --region us-west-2 -k aws.key --instance-type t2.micro --block-device-mapping /dev/sdc=ephemeral0
