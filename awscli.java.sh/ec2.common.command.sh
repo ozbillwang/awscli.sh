@@ -1,4 +1,6 @@
 # list the running or terminal instances (stopped instances are not in list)
+# http://docs.aws.amazon.com/AWSRubySDK/latest/AWS/EC2.html
+
 ec2-describe-instances --region us-west-2 |awk '/INSTANCE/{print $2}'
 
 i-0744b709
