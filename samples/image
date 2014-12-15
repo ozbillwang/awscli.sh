@@ -1,0 +1,6 @@
+
+aws ec2 describe-images \
+    --image-id ami-6e7bd919 \
+    --query "Images[*].Description[]" \
+    --output text \
+    --region eu-west-1
