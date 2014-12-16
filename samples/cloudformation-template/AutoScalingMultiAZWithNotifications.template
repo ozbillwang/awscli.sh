@@ -162,7 +162,7 @@
                   "region=", { "Ref" : "AWS::Region" }, "\n",
                   "AccountId=", { "Ref" : "AWS::AccountId" }, "\n",
                   "StackName=", { "Ref" : "AWS::StackName" }, "\n",
-                  "NotificationARNs=", { "Fn::Join" : [",", [{ "Ref" : "AWS::StackName" }]]}
+                  "NotificationARNs=", { "Ref" : "AWS::StackName" }
                 ]]},
                 "mode"    : "000400",
                 "owner"   : "root",
