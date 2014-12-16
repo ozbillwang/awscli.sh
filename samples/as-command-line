@@ -13,5 +13,14 @@ OK-Processes Suspended
 
 as-describe-auto-scaling-groups --region us-west-2 |awk  '/AUTO-SCALING-GROUP /{print $2}' |while read group
 do
+   echo "Auto-scaling-group: ${group}"
    as-suspend-processes "${group}" --region us-west-2 --region us-west-2
+done
+
+# resume all ASG Groups
+
+as-describe-auto-scaling-groups --region us-west-2 |awk  '/AUTO-SCALING-GROUP /{print $2}' |while read group
+do
+   echo "Auto-scaling-group: ${group}"
+   as-resume-processes "${group}" --region us-west-2 --region us-west-2
 done
