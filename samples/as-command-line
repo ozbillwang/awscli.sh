@@ -4,5 +4,12 @@ ASMultiAZNotificationsSample-WebServerGroup-F6J7OD86QI6C
 Launch-configuration-web-server-group-1
 
 # suspend one  auto scaling group
-as-suspend-processes --region us-west-2 ASMultiAZNotificationsSample-WebServerGroup-F6J7OD86QI6C 
+as-suspend-processes ASMultiAZNotificationsSample-WebServerGroup-F6J7OD86QI6C  --region us-west-2 
 OK-Processes Suspended
+
+# suspend all ASG groups.
+
+as-describe-auto-scaling-groups --region us-west-2 |awk  '/AUTO-SCALING-GROUP /{print $2}' |while read group
+do
+   as-suspend-processes "${group}" --region us-west-2 --region us-west-2
+done
