@@ -4,5 +4,5 @@ ASMultiAZNotificationsSample-WebServerGroup-F6J7OD86QI6C
 Launch-configuration-web-server-group-1
 
 # suspend one  auto scaling group
-as-suspend-processes ASMultiAZNotificationsSample-WebServerGroup-F6J7OD86QI6C --region us-west-2
+as-suspend-processes --region us-west-2 ASMultiAZNotificationsSample-WebServerGroup-F6J7OD86QI6C 
 OK-Processes Suspended
