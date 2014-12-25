@@ -9,6 +9,11 @@ InstanceType	m1.small
 KeyName	qwikLABS-L152-90947
 Prefix	spl-36-caching-static-files-with-cloudfront
 ##################
+Key	Value	Description
+qwikLAB	{"UserName": "ec2-user","HostDNS": "54.148.78.186","InstanceId": "i-6fccb965","Connection": "ec2-user@54.148.78.186"}	Outputs to be used by qwikLAB
+S3BucketURL	qlstack2-labinstance-90947-0349953e-4c6c-s3bucket-1gt3zzfhw4j9i	Name of S3 bucket
+StaticWebsiteURL	http://qlstack2-labinstance-90947-0349953e-4c6c-s3bucket-1gt3zzfhw4j9i.s3.amazonaws.com/cf_lab1.html	Static Wesite
+##################
 
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
