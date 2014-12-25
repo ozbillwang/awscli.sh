@@ -1,0 +1,225 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "CloudFront Lab-Caching Static Files",
+  "Parameters" : {
+    "AWSAmiId" : {
+      "Description": "AMI Id to find",
+      "Type": "String",
+      "Default": "x86_64,amzn-ami-pv-2014.03.1.x86_64-ebs"
+    },
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair",
+      "Type": "String"
+    },
+    "AWSAccessKey": {"Type": "String"},
+    "AWSSecretAccessKey": {"Type": "String"},
+    "InstanceType" : {
+      "Description" : "WebServer EC2 instance type",
+      "Type" : "String",
+      "Default" : "m1.small",
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+    "Bucket": {
+      "Default": "aws-training",
+      "Description": "Bucket for staged assets.",
+      "Type": "String"
+    },
+    "Prefix": {
+      "Default": "spl-36-caching-static-files-with-cloudfront",
+      "Description": "Prefix for staged assets.",
+      "Type": "String"
+    }
+  },
+  "Mappings" : {
+    "RegionAmazonLinuxAMIMap": {
+      "us-east-1": { "AMI": "ami-5b792c32" },
+      "us-west-1": { "AMI": "ami-567b4f13" },
+      "us-west-2": { "AMI": "ami-1b3b462b" },
+      "eu-west-1": { "AMI": "ami-129f7865" },
+      "sa-east-1": { "AMI": "ami-9b6ec986" },
+      "ap-northeast-1": { "AMI": "ami-3961fe38" },
+      "ap-southeast-1": { "AMI": "ami-20f2b972" },
+      "ap-southeast-2": { "AMI": "ami-9948d5a3" }
+    }
+  },
+  "Resources" : {
+    "S3Bucket" : {"Type" : "AWS::S3::Bucket"},
+    "BucketPolicy" : {
+      "Type" : "AWS::S3::BucketPolicy",
+      "Properties" : {
+        "PolicyDocument": {
+          "Id"           : "UploadPolicy",
+          "Statement"    : [{
+            "Sid"        : "EnableReadWrite",
+            "Effect"     : "Allow",
+            "Action"     : "s3:*",
+            "Resource"   : [{ "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref" : "S3Bucket"} , "/*"]]}, { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref" : "S3Bucket"}]]}],
+            "Principal"  : "*"
+          }]
+        },
+        "Bucket" : {"Ref" : "S3Bucket"}
+      }
+    },
+    "S3User" : {
+      "Type" : "AWS::IAM::User",
+      "Properties" : {
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "root",
+          "PolicyDocument": { "Statement":[{
+            "Effect":"Allow",
+            "Action":"s3:*",
+            "Resource":"*"
+          }]}
+        }]
+      }
+    },
+
+    "S3Keys" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {"UserName" : {"Ref": "S3User"} }
+    },
+
+    "Ec2Instance" : {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "packages": {
+              "yum": {
+                "aws-apitools-cfn.noarch": [],
+                "httpd": []
+              },
+              "python": {
+              }
+            },
+            "files" : {
+              "/home/ec2-user/aws_cli_config": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[default]\n",
+                      "aws_access_key_id = ", {"Ref": "S3Keys"}, "\n",
+                      "aws_secret_access_key = ", {"Fn::GetAtt": ["S3Keys", "SecretAccessKey"] }, "\n",
+                      "region = ", { "Ref" : "AWS::Region" }, "\n"
+                    ]
+                  ]
+                },
+                "mode": "000640",
+                "owner": "ec2-user",
+                "group": "ec2-user"
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "ImageId" : { "Ref" : "AWSAmiId" },
+        "InstanceType"   : { "Ref" : "InstanceType" },
+        "SecurityGroups" : [ {"Ref" : "SecurityGroup"} ],
+        "KeyName": {"Ref": "KeyName"},
+        "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+            "#!/bin/bash -v\n",
+
+            "yum update -y\n",
+
+            "# Signal Error to Stack Helper function\n",
+            "function error_exit \n",
+            "{\n",
+            "  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" \"", {"Ref": "WaitHandle"}, "\"\n",
+            "  exit 1\n",
+            "}\n",
+
+            "# Install packages and write files from AWS::CloudFormation::Init section\n",
+            "/opt/aws/bin/cfn-init -s ", { "Ref": "AWS::StackName" }, " -r Ec2Instance ",
+            " --region ", { "Ref": "AWS::Region" },
+            " || error_exit 'Failed to run cfn-init'\n",
+
+            "# AWS CLI Config\n",
+            "export AWS_CONFIG_FILE=/home/ec2-user/aws_cli_config\n",
+            "echo 'export AWS_CONFIG_FILE=/home/ec2-user/aws_cli_config'  >> /home/ec2-user/.bash_profile\n",
+
+            "# AWS CLI Auto Complete in Bash\n",
+            "echo 'complete -C aws_completer aws' >> /home/ec2-user/.bash_profile\n",
+
+
+            "cd /home/ec2-user \n",
+            "cat > /home/ec2-user/config <<EOF \n",
+            "[default]\n",
+            "aws_access_key_id = ", {"Ref": "S3Keys"}, "\n",
+            "aws_secret_access_key = ",{"Fn::GetAtt": [ "S3Keys", "SecretAccessKey" ]},"\n",
+            "region = ", { "Ref" : "AWS::Region" },"\n",
+            "EOF\n",
+
+            "mkdir /home/ec2-user/cf_lab1 \n",
+            "curl -o /home/ec2-user/cf_lab1/cf_lab1.tar.gz https://us-west-2-aws-training.s3.amazonaws.com/spl-36-caching-static-files-with-cloudfront/static/cf_lab1.tar.gz \n",
+            "tar xvf /home/ec2-user/cf_lab1/cf_lab1.tar.gz || error_exit 'Failed to untar'\n",
+            "export AWS_CONFIG_FILE=/home/ec2-user/config \n",
+            "aws s3 cp cf_lab1 s3://", { "Ref" : "S3Bucket" }, "/ --recursive --acl public-read --region ", { "Ref" : "AWS::Region" }, "\n",
+            "# Signal Success to CloudFormation Stack WaitHandle\n",
+            "/opt/aws/bin/cfn-signal -e 0 -r \"cfn-init setup complete\" \"", {"Ref" : "WaitHandle"}, "\"\n"
+
+        ]]}}
+      }
+
+    },
+
+    "WaitHandle" : { "Type" : "AWS::CloudFormation::WaitConditionHandle" },
+
+    "WaitCondition" : {
+      "Type" : "AWS::CloudFormation::WaitCondition",
+      "DependsOn" : "Ec2Instance",
+      "Properties" : {
+        "Handle" : {"Ref" : "WaitHandle"},
+        "Timeout" : "1200"
+      }
+    },
+
+    "EC2InstanceEIP" : {
+      "Type" : "AWS::EC2::EIP",
+      "DependsOn" : "Ec2Instance",
+      "Properties" : {
+        "InstanceId" : {
+          "Ref" : "Ec2Instance"
+        }
+      }
+    },
+
+    "SecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP access via port 80, the indexer port plus SSH access",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"},
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : "0.0.0.0/0"}
+        ]
+      }
+    }
+  },
+
+  "Outputs": {
+    "qwikLAB" : {
+      "Description" : "Outputs to be used by qwikLAB",
+      "Value" : {
+        "Fn::Join" : [ "", [ "{", "\"UserName\":  \"ec2-user", "\",", "\"HostDNS\": \"", {
+          "Ref" : "EC2InstanceEIP"
+        }, "\",", "\"InstanceId\": \"", {
+          "Ref" : "Ec2Instance"
+        }, "\",", "\"Connection\": \"ec2-user@", {
+          "Ref" : "EC2InstanceEIP"
+        }, "\"", "}" ] ]
+      }
+    },
+    "S3BucketURL" : {
+      "Value" : { "Ref" : "S3Bucket" },
+      "Description" : "Name of S3 bucket "
+    },
+    "StaticWebsiteURL" : {
+      "Value" : { "Fn::Join" : [
+        "", [ "http://", { "Fn::GetAtt" : [ "S3Bucket", "DomainName" ] }, "/cf_lab1.html" ]
+      ] },
+      "Description" : "Static Wesite"
+    }
+  }
+}
