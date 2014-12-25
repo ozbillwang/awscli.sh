@@ -17,6 +17,7 @@ StaticWebsiteURL	http://qlstack2-labinstance-90947-0349953e-4c6c-s3bucket-1gt3zz
 https://us-west-2-aws-training.s3.amazonaws.com/spl-36-caching-static-files-with-cloudfront/static/cf_lab1.tar.gz
 http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/GettingStarted.html
 http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/distribution-web.html
+http://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/PriceClass.html
 ##################
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
