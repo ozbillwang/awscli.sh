@@ -1,3 +1,15 @@
+
+##################
+Key	Value
+AWSAccessKey	AKIAJUSHFF45G4MYZP4Q
+AWSAmiId	ami-043a5034
+AWSSecretAccessKey	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
+Bucket	aws-training
+InstanceType	m1.small
+KeyName	qwikLABS-L152-90947
+Prefix	spl-36-caching-static-files-with-cloudfront
+##################
+
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Description" : "CloudFront Lab-Caching Static Files",
