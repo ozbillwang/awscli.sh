@@ -6,6 +6,8 @@ $ eb init -p PHP
 $ echo "Hello World" > index.html
 $ eb create dev-env
 $ eb open
+Do some changes index.html or add files/folders.
+$ eb deploy
 ######################
 
 {
