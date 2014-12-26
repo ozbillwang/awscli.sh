@@ -16,6 +16,23 @@ rm -rf /home/ec2-user/push-to-s3
 /usr/local/bin/s3cmd": "http://downloads.sourceforge.net/project/s3tools/s3cmd/1.1.0-beta3/s3cmd-1.1.0-beta3.zip
 sudo python setup.py install
 ################
+https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/static/static-site.tgz
+
+$ gtar zxvf static-site.tgz
+$ cd static-site
+$ ls -lctr
+total 32
+drwxr-xr-x  5 bill  staff   170 27 Dec 10:03 js
+-rw-r--r--  1 bill  staff  1262 27 Dec 10:03 instances.txt
+-rw-r--r--  1 bill  staff  6902 27 Dec 10:03 index.html
+drwxr-xr-x  4 bill  staff   136 27 Dec 10:03 img
+drwxr-xr-x  4 bill  staff   136 27 Dec 10:03 css
+-rw-r--r--  1 bill  staff  1262 27 Dec 10:03 _instances.txt
+
+Use below command to push the folder (static-site) to s3 bucket.
+/home/ec2-user/push-to-s3
+################
+
 https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/static/as-node-manager.py
 
 [ec2-user@ip-172-31-1-123 ~]$ cat as-node-manager.py
