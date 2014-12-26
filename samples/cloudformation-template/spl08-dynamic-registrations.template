@@ -30,7 +30,12 @@ drwxr-xr-x  4 bill  staff   136 27 Dec 10:03 css
 -rw-r--r--  1 bill  staff  1262 27 Dec 10:03 _instances.txt
 
 Use below command to push the folder (static-site) to s3 bucket.
-/home/ec2-user/push-to-s3
+
+# Use s3cmd to push static site content to S3 bucket created in cfn template. Delete content when finished
+s3cmd -c /home/ec2-user/.s3cfg put --recursive /home/ec2-user/push-to-s3/static-site/*  s3://qwiklab-staticsitebucket-9vto3seze0bt
+rm -rf /home/ec2-user/push-to-s3
+
+/home/ec2-user/push-to-s3 is a folder, which have the download file static/static-site.tgz
 ################
 
 https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/static/as-node-manager.py
