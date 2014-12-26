@@ -13,6 +13,9 @@ rm -rf /home/ec2-user/push-to-s3
 # At startup, execute the as-node-manager.py script to track EC2 instances in the auto scaling group. The python script was created by cfn-init.
 /usr/bin/python /home/ec2-user/as-node-manager.py  --ddb-table-name=qwiklab-ASRegisteredInstances-19KG8WO1RW7U4 --sqs-queue-name=qwiklab-ASNotificationsQueue-2IXR97445KQ7 --s3-output-bucket=qwiklab-staticsitebucket-9vto3seze0bt --s3-output-key=instances.txt > /home/ec2-user/output.log &
 ################
+/usr/local/bin/s3cmd": "http://downloads.sourceforge.net/project/s3tools/s3cmd/1.1.0-beta3/s3cmd-1.1.0-beta3.zip
+sudo python setup.py install
+################
 https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/static/as-node-manager.py
 
 [ec2-user@ip-172-31-1-123 ~]$ cat as-node-manager.py
