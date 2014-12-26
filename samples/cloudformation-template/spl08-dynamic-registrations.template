@@ -13,6 +13,220 @@ rm -rf /home/ec2-user/push-to-s3
 # At startup, execute the as-node-manager.py script to track EC2 instances in the auto scaling group. The python script was created by cfn-init.
 /usr/bin/python /home/ec2-user/as-node-manager.py  --ddb-table-name=qwiklab-ASRegisteredInstances-19KG8WO1RW7U4 --sqs-queue-name=qwiklab-ASNotificationsQueue-2IXR97445KQ7 --s3-output-bucket=qwiklab-staticsitebucket-9vto3seze0bt --s3-output-key=instances.txt > /home/ec2-user/output.log &
 ################
+https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/static/as-node-manager.py
+
+[ec2-user@ip-172-31-1-123 ~]$ cat as-node-manager.py
+import boto
+import json
+import time
+import sys
+import getopt
+import argparse
+import boto.sqs
+from boto.sqs.message import RawMessage
+from boto.s3.key import Key
+
+##########################################################
+# Connect to SQS and poll for messages
+##########################################################
+def main(argv=None):
+	# Handle command-line arguments for AWS credentials and resource names
+	parser = argparse.ArgumentParser(description='Process AWS resources and credentials.')
+	parser.add_argument('--sqs-queue-name', action='store', dest='sqs_queue_name', required='true', help='SQS queue storing AutoScaling notification messages')
+	parser.add_argument('--ddb-table-name', action='store', dest='ddb_table_name', required='true', help='Dynamo DB table where instance information is stored')
+	parser.add_argument('--s3-output-bucket', action='store', dest='s3_output_bucket', required='true', help='S3 bucket where list of instances will be stored')
+	parser.add_argument('--s3-output-key', action='store', dest='s3_output_key', required='true', help='S3 key where list of instances will be stored')
+	args = parser.parse_args()
+
+	import ConfigParser
+	config = ConfigParser.ConfigParser()
+	config.read(["/etc/boto.cfg"])
+
+	# Set region
+	region = config.get('Boto','aws_region')
+
+	# Set queue names
+	sqs_queue_name = args.sqs_queue_name
+	ddb_table_name = args.ddb_table_name
+
+	# Get S3 bucket and object
+	s3_output_bucket = args.s3_output_bucket
+	s3_output_key = args.s3_output_key
+
+	print('Connecting to queue %s and domain %s') % (sqs_queue_name, ddb_table_name)
+
+	# Connect to SQS and open queue
+	sqs = boto.sqs.connect_to_region(region)
+	queue = sqs.get_queue(sqs_queue_name)
+	queue.set_message_class(RawMessage)
+
+	while True:
+		print("Asking SQS for up to 10 messages.")
+		# Get messages
+		rs = queue.get_messages(num_messages=10)
+
+		if len(rs) > 0:
+			print("Received " + str(len(rs)) + " messages...")
+			# Iterate each message
+			for raw_message in rs:
+				# Parse JSON message (going two levels deep to get the embedded message)
+				envelope = json.loads(raw_message.get_body())
+				message = json.loads(envelope['Message'])
+
+				# Trap the EC2_INSTANCE_LAUNCH event
+				if message['Event'] == 'autoscaling:EC2_INSTANCE_LAUNCH':
+					print("Processing message for instance launch")
+					save_instance(message['EC2InstanceId'], ddb_table_name)
+				# Trap the EC2_INSTANCE_TERMINATE event
+				elif message['Event'] == 'autoscaling:EC2_INSTANCE_TERMINATE':
+					print("Processing message for instance termination")
+					delete_instance(message['EC2InstanceId'], ddb_table_name)
+
+				# Delete the message from the queue and continue polling
+				print ("Deleting message")
+				queue.delete_message(raw_message)
+
+			# Update json output file with new data from SimpleDB
+			instances_json = select_instances_to_json(ddb_table_name)
+
+			# Write output to S3
+			write_instances_to_s3(instances_json, s3_output_bucket, s3_output_key)
+
+		time.sleep(5)
+
+##########################################################
+# Locate an instance by its ID
+##########################################################
+def get_instance(instance_id):
+	# Connect to EC2
+	ec2 = boto.connect_ec2()
+
+	# Find an instance by its ID.
+	reservations = ec2.get_all_instances([instance_id])
+	instance = reservations[0].instances[0]
+
+	return instance
+
+##########################################################
+# Connect to DynamoDB and register instance info
+##########################################################
+def save_instance(instance_id, ddb_table_name):
+	instance = get_instance(instance_id)
+
+	# Connect to DynamodB (using key from env) and get table
+	ddb = boto.connect_dynamodb()
+	table = ddb.get_table(ddb_table_name)
+
+	# Create a new record for this instance
+	item = table.new_item(
+		hash_key=instance.id,
+		attrs = {
+			'pub_hostname': instance.public_dns_name,
+			'pub_ip': instance.ip_address,
+			'priv_hostname': instance.private_dns_name,
+			'priv_ip': instance.private_ip_address,
+			'ami_id': instance.image_id,
+			'region': instance.region.name,
+			'availability_zone' : instance.placement,
+			'terminated': 'false'
+		}
+	)
+
+	# Save the item to DynamoDB
+	item.put()
+
+##########################################################
+# Connect to DynamoDB and remove a registered instance
+##########################################################
+def delete_instance(instance_id, ddb_table_name):
+	# Connect to DynamodB (using key from env) and get table
+	ddb = boto.connect_dynamodb()
+	table = ddb.get_table(ddb_table_name)
+
+	# Get the item to soft delete
+	item = table.get_item(instance_id)
+
+	# Update the terminated flag
+	item['terminated'] = 'true'
+
+	# Save the item to DynamoDB
+	item.put()
+
+##############################################################################
+# Query DynamoDB for running instances and write the output to a json file
+##############################################################################
+def select_instances_to_json(ddb_table_name):
+	# Connect to DynamodB (using key from env) and get table
+	ddb = boto.connect_dynamodb()
+	table = ddb.get_table(ddb_table_name)
+
+	# Select all items from the table
+	items = table.scan()
+
+	# List the fields we're interested in
+	fields = ['terminated', 'ami_id', 'availability_zone', 'region', 'pub_ip', 'pub_hostname', 'priv_ip', 'priv_hostname']
+
+	json_string = "{ \"instances\" : ["
+
+	# Iterate over the ResultSet and write out items in json format
+	for item in items:
+		json_string += "{\"id\" : \"" + item.hash_key + "\","
+		for field in fields:
+			json_string += "\"" + field + "\" : \"" + item[field] + "\","
+		json_string += "},"
+
+	# Finish the JSON string and hackily handle the closing brackets-comma issue
+	json_string += "] }"
+	json_string = json_string.replace(",]", "]")
+	json_string = json_string.replace(",}", "}")
+
+	return json_string
+
+##############################################################################
+# Write instances string to S3
+##############################################################################
+def write_instances_to_s3(instances_json, s3_output_bucket, s3_output_key):
+	# Connect to S3 and get the output bucket
+	s3 = boto.connect_s3()
+	output_bucket = s3.get_bucket(s3_output_bucket)
+
+	# Create a key to store the instances_json text
+	k = Key(output_bucket)
+	k.key = s3_output_key
+	k.set_metadata("Content-Type", "text/plain")
+	k.set_contents_from_string(instances_json)
+
+##############################################################################
+# Write instances string to a file
+##############################################################################
+def write_instances_to_file(output_file):
+	# (Over)write the existing file
+	f = open(output_file, 'w')
+	f.write(json_string)
+	f.close()
+
+if __name__ == "__main__":
+    sys.exit(main())
+[ec2-user@ip-172-31-1-123 ~]$
+
+###############
+[ec2-user@ip-172-31-1-123 ~]$ cat /etc/boto.cfg
+[Boto]
+aws_region = us-west-2
+ec2_region_name = us-west-2
+ec2_region_endpoint = ec2.us-west-2.amazonaws.com
+[DynamoDB]
+region = us-west-2
+[ec2-user@ip-172-31-1-123 ~]$
+
+###############
+[ec2-user@ip-172-31-1-123 ~]$ cat /home/ec2-user/.s3cfg
+[default]
+access_key = AKIAIJIDSNQTRJDAXWWA
+secret_key = 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
+[ec2-user@ip-172-31-1-123 ~]$
+
+###############
 {
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "Dynamic registration using AutoScaling notifications, SNS and SQS. AutoScaling publishes notifications on EC2 instance launch and termination to an SNS topic which has an SQS queue subscribed. An optional QueueWatcher instance may be provisioned where code to poll the SQS queue might be installed to take action as instances come and go.",
