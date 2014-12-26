@@ -1,0 +1,632 @@
+# https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/spl08-dynamic-registrations.template
+
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Dynamic registration using AutoScaling notifications, SNS and SQS. AutoScaling publishes notifications on EC2 instance launch and termination to an SNS topic which has an SQS queue subscribed. An optional QueueWatcher instance may be provisioned where code to poll the SQS queue might be installed to take action as instances come and go.",
+  "Parameters": {
+    "KeyName": {
+      "Type": "String"
+    },
+    "Bucket": {
+      "Type": "String",
+      "Default": "aws-training"
+    },
+    "Prefix": {
+      "Type": "String",
+      "Default": "awsu-spl/spl08-dynamic-registrations/"
+    },
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t2.micro",
+      "Description": "EC2 instance type, e.g. m1.small, m1.large, etc."
+    },
+    "ApplicationServerCount": {
+      "Type": "String",
+      "Default": "2",
+      "Description": "The number of Application-tier instances desired."
+    },
+    "QueueWatcherCount": {
+      "Type": "String",
+      "Default": "0",
+      "Description": "The number of QueueWatcher instances desired. Default is 0."
+    }
+  },
+  "Resources": {
+    "Ec2SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "HTTP access for web servers",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "QueueWatcherSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "HTTP and SSH access to QueueWatcher tier",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "22",
+            "ToPort": "22",
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": "80",
+            "ToPort": "80",
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "QueueWatcherLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "DependsOn": "ASNotificationsQueuePolicy",
+      "Properties": {
+        "IamInstanceProfile": {
+          "Ref": "RootInstanceProfile"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AmznLinuxRegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "QueueWatcherSecurityGroup"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash",
+                "\n",
+                "/opt/aws/bin/cfn-init",
+                " --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r QueueWatcherLaunchConfig ",
+                "\n",
+                "# Install s3cmd\n",
+                "cd /usr/local/bin/s3cmd/s3cmd-1.1.0-beta3\n",
+                "python setup.py install\n",
+                "# Use s3cmd to push static site content to S3 bucket created in cfn template. Delete content when finished\n",
+                "s3cmd -c /home/ec2-user/.s3cfg put --recursive /home/ec2-user/push-to-s3/static-site/*  s3://",
+                {
+                  "Ref": "StaticSiteBucket"
+                },
+                "\n",
+                "rm -rf /home/ec2-user/push-to-s3",
+                "\n",
+                "# At startup, execute the as-node-manager.py script to track EC2 instances in the auto scaling group. The python script was created by cfn-init.",
+                "\n",
+                "/usr/bin/python /home/ec2-user/as-node-manager.py ",
+                " --ddb-table-name=",
+                {
+                  "Ref": "ASRegisteredInstances"
+                },
+                " --sqs-queue-name=",
+                {
+                  "Fn::GetAtt": [
+                    "ASNotificationsQueue",
+                    "QueueName"
+                  ]
+                },
+                " --s3-output-bucket=",
+                {
+                  "Ref": "StaticSiteBucket"
+                },
+                " --s3-output-key=",
+                "instances.txt",
+                " > /home/ec2-user/output.log &"
+              ]
+            ]
+          }
+        }
+      },
+      "Metadata": {
+        "Description": "Install a python script, a few python libraries and s3cmd to push a few static files to an S3 bucket.",
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "packages": {
+              "yum": {
+                "python-boto.noarch": []
+              },
+              "python": {
+                "argparse": []
+              }
+            },
+            "sources": {
+              "/usr/local/bin/s3cmd": "http://downloads.sourceforge.net/project/s3tools/s3cmd/1.1.0-beta3/s3cmd-1.1.0-beta3.zip",
+              "/home/ec2-user/push-to-s3": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "https://",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "-",
+                    {
+                      "Ref": "Bucket"
+                    },
+                    ".s3.amazonaws.com/",
+                    {
+                      "Ref": "Prefix"
+                    },
+                    "static/static-site.tgz"
+                  ]
+                ]
+              }
+            },
+            "files": {
+              "/etc/boto.cfg": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[Boto]\n",
+                      "aws_region = ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n",
+                      "ec2_region_name = ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n",
+                      "ec2_region_endpoint = ec2.",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ".amazonaws.com\n",
+                      "[DynamoDB]\n",
+                      "region = ",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
+                "mode": "000400",
+                "owner": "ec2-user",
+                "group": "ec2-user"
+              },
+              "/home/ec2-user/.s3cfg": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "[default]",
+                      "\n",
+                      "access_key = ",
+                      {
+                        "Ref": "CFNKeys"
+                      },
+                      "\n",
+                      "secret_key = ",
+                      {
+                        "Fn::GetAtt": [
+                          "CFNKeys",
+                          "SecretAccessKey"
+                        ]
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "ec2-user",
+                "mode": "000600",
+                "owner": "ec2-user"
+              },
+              "/home/ec2-user/as-node-manager.py": {
+                "source": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "https://",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      "-",
+                      {
+                        "Ref": "Bucket"
+                      },
+                      ".s3.amazonaws.com/",
+                      {
+                        "Ref": "Prefix"
+                      },
+                      "static/as-node-manager.py"
+                    ]
+                  ]
+                },
+                "mode": "000600",
+                "owner": "ec2-user",
+                "group": "ec2-user"
+              }
+            }
+          }
+        }
+      }
+    },
+    "QueueWatcherGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AvailabilityZones": {
+          "Fn::GetAZs": ""
+        },
+        "LaunchConfigurationName": {
+          "Ref": "QueueWatcherLaunchConfig"
+        },
+        "MinSize": "0",
+        "MaxSize": "1",
+        "DesiredCapacity": {
+          "Ref": "QueueWatcherCount"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "QueueWatcher-Dynamic-Registration",
+            "PropagateAtLaunch": "true"
+          }
+        ]
+      }
+    },
+    "StaticSiteBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain"
+    },
+    "StaticSiteBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "PolicyDocument": {
+          "Id": "StaticSiteBucketPolicy",
+          "Statement": [
+            {
+              "Sid": "ReadAccess",
+              "Action": [
+                "s3:*"
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "StaticSiteBucket"
+                    },
+                    "/*"
+                  ]
+                ]
+              },
+              "Principal": {
+                "AWS": "*"
+              }
+            }
+          ]
+        },
+        "Bucket": {
+          "Ref": "StaticSiteBucket"
+        }
+      }
+    },
+    "ASRegisteredInstances": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "KeySchema": {
+          "HashKeyElement": {
+            "AttributeName": "InstanceId",
+            "AttributeType": "S"
+          }
+        },
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "1",
+          "WriteCapacityUnits": "1"
+        }
+      }
+    },
+    "ASNotifications": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "Subscription": [
+          {
+            "Endpoint": {
+              "Fn::GetAtt": [
+                "ASNotificationsQueue",
+                "Arn"
+              ]
+            },
+            "Protocol": "sqs"
+          }
+        ]
+      }
+    },
+    "ASNotificationsQueue": {
+      "Type": "AWS::SQS::Queue"
+    },
+    "ASNotificationsQueuePolicy": {
+      "Type": "AWS::SQS::QueuePolicy",
+      "Properties": {
+        "Queues": [
+          {
+            "Ref": "ASNotificationsQueue"
+          }
+        ],
+        "PolicyDocument": {
+          "Version": "2008-10-17",
+          "Id": "ASNotificationsQueuePolicy",
+          "Statement": [
+            {
+              "Sid": "Allow-User-SendMessage",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": [
+                "SQS:SendMessage"
+              ],
+              "Resource": {
+                "Fn::GetAtt": [
+                  "ASNotificationsQueue",
+                  "Arn"
+                ]
+              },
+              "Condition": {
+                "ArnEquals": {
+                  "aws:SourceArn": {
+                    "Ref": "ASNotifications"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ApplicationServerGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "DependsOn": "QueueWatcherGroup",
+      "Properties": {
+        "AvailabilityZones": {
+          "Fn::GetAZs": ""
+        },
+        "LaunchConfigurationName": {
+          "Ref": "ApplicationServerLaunchConfig"
+        },
+        "MinSize": "0",
+        "MaxSize": "8",
+        "DesiredCapacity": {
+          "Ref": "ApplicationServerCount"
+        },
+        "NotificationConfiguration": {
+          "TopicARN": {
+            "Ref": "ASNotifications"
+          },
+          "NotificationTypes": [
+            "autoscaling:EC2_INSTANCE_LAUNCH",
+            "autoscaling:EC2_INSTANCE_TERMINATE"
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "AppServer-Dynamic-Registration",
+            "PropagateAtLaunch": "true"
+          }
+        ]
+      }
+    },
+    "ApplicationServerLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AmznLinuxRegionMap",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "Ec2SecurityGroup"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "/opt/aws/bin/cfn-init",
+                " --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r LaunchConfig ",
+                "\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "CFNInitUser": {
+      "Type": "AWS::IAM::User",
+      "Properties": {
+        "Policies": [
+          {
+            "PolicyName": "cfn-init-access",
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "*",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "CFNKeys": {
+      "Type": "AWS::IAM::AccessKey",
+      "Properties": {
+        "UserName": {
+          "Ref": "CFNInitUser"
+        }
+      }
+    },
+    "RootRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "ec2.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Path": "/"
+      }
+    },
+    "RolePolicies": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "root",
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "RootRole"
+          }
+        ]
+      }
+    },
+    "RootInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "RootRole"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "QueueWatcherOutputURL": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Fn::GetAtt": [
+                "StaticSiteBucket",
+                "DomainName"
+              ]
+            },
+            "/index.html"
+          ]
+        ]
+      },
+      "Description": "URL of S3 bucket/object where QueueWatcher instance is storing data about instances in AutoScaling group."
+    },
+    "SecurityGroup": {
+      "Value": {
+        "Ref": "Ec2SecurityGroup"
+      }
+    }
+  },
+  "Mappings": {
+    "AmznLinuxRegionMap": {
+      "us-east-1": {
+        "AMI": "ami-b66ed3de"
+      },
+      "us-west-1": {
+        "AMI": "ami-4b6f650e"
+      },
+      "us-west-2": {
+        "AMI": "ami-b5a7ea85"
+      },
+      "eu-west-1": {
+        "AMI": "ami-6e7bd919"
+      },
+      "sa-east-1": {
+        "AMI": "ami-8737829a"
+      },
+      "ap-southeast-1": {
+        "AMI": "ami-ac5c7afe"
+      },
+      "ap-southeast-2": {
+        "AMI": "ami-63f79559"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-4985b048"
+      }
+    }
+  }
+}
