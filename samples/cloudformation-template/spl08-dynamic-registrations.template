@@ -1,4 +1,8 @@
-# https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/spl08-dynamic-registrations.template
+# Detail analyze which didn't express clearly in (https://run.qwiklab.com/focuses/1202) lab  (Using Dynamic Registration and Dashboards for Amazon EC2 Instances)
+
+The cloudformation template can be downloaded from:
+
+https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/spl08-dynamic-registrations.template
 ##############
 converted user data of Launch Configuration: qwiklab-QueueWatcherLaunchConfig-1U34F9E677NWO 
 
@@ -16,7 +20,11 @@ rm -rf /home/ec2-user/push-to-s3
 /usr/local/bin/s3cmd": "http://downloads.sourceforge.net/project/s3tools/s3cmd/1.1.0-beta3/s3cmd-1.1.0-beta3.zip
 sudo python setup.py install
 ################
-https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/static/static-site.tgz
+Web contents are saved on S3 under bucket s3://qwiklab-staticsitebucket-9vto3seze0bt  (bucket name is auto-generated)
+
+mkdir push-to-s3
+cd push-to-s3
+wget https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/static/static-site.tgz
 
 $ gtar zxvf static-site.tgz
 $ cd static-site
@@ -36,7 +44,9 @@ s3cmd -c /home/ec2-user/.s3cfg put --recursive /home/ec2-user/push-to-s3/static-
 rm -rf /home/ec2-user/push-to-s3
 
 /home/ec2-user/push-to-s3 is a folder, which have the download file static/static-site.tgz
+
 ################
+The main code to get instance information updated, it can be manually download from:
 
 https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/static/as-node-manager.py
 
