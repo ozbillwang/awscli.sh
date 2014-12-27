@@ -1,5 +1,16 @@
 # Detail analyze which didn't express clearly in (https://run.qwiklab.com/focuses/1202) lab  (Using Dynamic Registration and Dashboards for Amazon EC2 Instances)
 
+
+Setup Time (min.)	10
+Duration (min.)	35
+Access (min.)	55
+Tags: sns, javascript,  sqs,  notification,  queue,  python,  EC2,  S3, spl08 Levels: advanced
+
+Lab Description: In this lab, you will learn how to use Amazon SNS, Amazon SQS, and a simple Python+Boto application to track when your Amazon EC2 instances are launched and terminated in an Auto Scaling Group. This application will store this lifecycle information in Amazon DynamoDB and build a simple web-based dashboard using Amazon S3 and JavaScript to track your infrastructure.
+
+Date Created: November 26, 2014 15:24 
+AWS Region: [us-west-2] US West (Oregon)
+
 The cloudformation template can be downloaded from:
 
 https://us-west-2-aws-training.s3.amazonaws.com/awsu-spl/spl08-dynamic-registrations/spl08-dynamic-registrations.template
