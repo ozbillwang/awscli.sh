@@ -1,3 +1,7 @@
+## Warning
+
+There are some Cloudformation templates I wrote or collected, using some of them will automatically create many ec2 instances, large database instances, etc, it will generate big bill, so you need take care of the price before upload it to your system.
+
 ### awscli.sh
 
 Shell scripts for managing Amazon Cloud's aws instances and services, useful for SysOps/DevOps who prefers to use shell scripting.
