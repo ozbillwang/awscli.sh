@@ -1,0 +1,2 @@
+IP=`curl -s icanhazip.com`
+aws ec2 authorize-security-group-ingress --group-name "bastion" --protocol tcp --port 22 --cidr $IP/32
