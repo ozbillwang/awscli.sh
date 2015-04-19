@@ -21,3 +21,5 @@ aws configure set profile.summit.aws_secret_access_key "$secret_access_key"
 
 aws iam list-users --query Users[0].[UserName,Path,UserId]
 aws iam list-users --query Users[0].[UserName,Path,UserId] --profile prod
+
+aws ec2 run-instances --image-id ami-fd4724c7 --instance-type t2.micro
