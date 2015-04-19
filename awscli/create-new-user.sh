@@ -1,3 +1,14 @@
+aws configure set region ap-southeast-1
+aws configure list
+aws configure set profile.prod.region=eu-west-1
+aws configure list --profile prod
+
+aws configure
+aws configure --profile prod
+
+
+aws iam list-users --query Users[0].[UserName,Path,UserId]
+
 aws iam create-user --user-name summit-user
 credentials=$(aws iam create-access-key --user-name summit-user \
   --query 'AccessKey.[AccessKeyId,SecretAccessKey]' \
