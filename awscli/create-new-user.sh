@@ -33,3 +33,19 @@ do
         --query 'Reservations[].Instances[].State.Name' \
         --output text)
 done
+
+aws ec2 wait instance-running --instance-ids $instance_id
+
+aws ec2 run-instances --generate-cli-skeleton
+
+$ cat arguments.json
+{
+    "DryRun": true,
+    "ImageId": "ami-fd4724c7",
+    "MinCount": "1",
+    "MaxCount": "1",
+    "KeyName": "bill-test",
+    "InstanceType": "t2.micro"
+}
+
+aws ec2 run-instances --cli-input-json file://arguments.json
