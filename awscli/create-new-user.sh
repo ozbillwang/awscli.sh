@@ -1,3 +1,6 @@
+#!/bin/bash
+# http://www.slideshare.net/AmazonWebServices/deep-dive-advanced-usage-of-the-aws-cli
+
 aws configure set region ap-southeast-1
 aws configure list
 aws configure set profile.prod.region=eu-west-1
